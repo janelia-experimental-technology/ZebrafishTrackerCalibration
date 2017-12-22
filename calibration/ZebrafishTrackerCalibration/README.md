@@ -32,7 +32,7 @@ git clone https://github.com/janelia-experimental-technology/ZebrafishTrackerCon
 ### Compile
 
 ```shell
-cd ~/git/ZebrafishTracker
+cd ~/git/ZebrafishTrackerConfig/calibration/
 mkdir build
 cd build
 cmake ..
