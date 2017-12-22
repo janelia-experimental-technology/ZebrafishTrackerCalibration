@@ -38,3 +38,9 @@ cd build
 cmake ..
 make
 ```
+
+### Calculate Background Image
+
+```shell
+convert *.png -evaluate-sequence median background.png
+```
