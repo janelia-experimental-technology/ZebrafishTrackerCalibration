@@ -1,4 +1,4 @@
-# ZebrafishTrackerConfig
+# ZebrafishTrackerCalibration
 
 Authors:
 
@@ -7,3 +7,34 @@ Authors:
 License:
 
     BSD
+
+## Example Usage
+
+```shell
+cd ~/git/ZebrafishTrackerCalibration
+./bin/ZebrafishTrackerCalibration
+```
+
+## Installation
+
+### Setup Jetson
+
+<https://github.com/janelia-experimental-technology/nvidia_jetson_setup>
+
+# Checkout Git Repositories
+
+```shell
+mkdir ~/git
+cd ~/git
+git clone https://github.com/janelia-experimental-technology/ZebrafishTrackerCalibration.git
+```
+
+### Compile
+
+```shell
+cd ~/git/ZebrafishTrackerCalibration/
+mkdir build
+cd build
+cmake ..
+make
+```
