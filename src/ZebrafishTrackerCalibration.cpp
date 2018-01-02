@@ -75,10 +75,10 @@ int main(int argc, char * argv[])
   fs << "image_pts_in" << image_pts_in;
   fs << "stage_pts_out" << stage_pts_out;
 
-  cv::Mat background = cv::imread("background.png",CV_LOAD_IMAGE_GRAYSCALE );
-  if(!background.data )
+  cv::Mat background = cv::imread("background.png",CV_LOAD_IMAGE_GRAYSCALE);
+  if(!background.data)
   {
-    std::cout <<  "Could not open or find the background image!" << std::endl ;
+    std::cout <<  "Could not open or find the background image!" << std::endl;
     return -1;
   }
   cv::Mat calibrated;
@@ -220,6 +220,42 @@ int main(int argc, char * argv[])
               2);
 
   cv::imwrite("calibrated.png",calibrated);
+
+  cv::Mat checkerboard = cv::imread("checkerboard.png",CV_LOAD_IMAGE_GRAYSCALE);
+  if(!checkerboard.data)
+  {
+    std::cout <<  "Could not open or find the checkerboard image!" << std::endl;
+    return -1;
+  }
+
+  cv::Size patternsize(6,6);
+  std::vector<cv::Point2f> corners;
+
+  //CALIB_CB_FAST_CHECK saves a lot of time on images
+  //that do not contain any chessboard corners
+  bool patternfound = cv::findChessboardCorners(checkerboard,
+                                                patternsize,
+                                                corners,
+                                                cv::CALIB_CB_ADAPTIVE_THRESH + cv::CALIB_CB_NORMALIZE_IMAGE + cv::CALIB_CB_FAST_CHECK);
+
+  if(!patternfound)
+  {
+    std::cout <<  "Could not find the checkerboard corners!" << std::endl;
+    return -1;
+  }
+  // if(patternfound)
+  // {
+  //   cv::cornerSubPix(gray,
+  //                    corners,
+  //                    Size(11, 11),
+  //                    Size(-1, -1),
+  //                    TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
+  // }
+
+  cv::Mat checkerboard_annotated;
+  cv::cvtColor(checkerboard,checkerboard_annotated,CV_GRAY2BGR);
+  cv::drawChessboardCorners(checkerboard_annotated,patternsize,cv::Mat(corners),patternfound);
+  cv::imwrite("checkerboard_annotated.png",checkerboard_annotated);
 
   // std::vector<cv::Point2f> image_pts2;
   // std::vector<cv::Point2f> stage_pts2;
