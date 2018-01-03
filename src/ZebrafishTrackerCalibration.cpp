@@ -53,7 +53,7 @@ int main(int argc, char * argv[])
   image_pts.push_back(cv::Point2f(1264,933));
   stage_pts.push_back(cv::Point2f(24000,85000));
 
-  cv::FileStorage fs("calibration.yml", cv::FileStorage::WRITE);
+  cv::FileStorage fs("calibration/calibration.yml", cv::FileStorage::WRITE);
   fs << "image_pts" << image_pts;
   fs << "stage_pts" << stage_pts;
 
@@ -75,7 +75,7 @@ int main(int argc, char * argv[])
   fs << "image_pts_in" << image_pts_in;
   fs << "stage_pts_out" << stage_pts_out;
 
-  cv::Mat background = cv::imread("background.png",CV_LOAD_IMAGE_GRAYSCALE);
+  cv::Mat background = cv::imread("images/background.png",CV_LOAD_IMAGE_GRAYSCALE);
   if(!background.data)
   {
     std::cout <<  "Could not open or find the background image!" << std::endl;
@@ -184,7 +184,6 @@ int main(int argc, char * argv[])
            cv::Scalar(255,255,0),
            4);
   std::stringstream image_out_ss_0;
-  // image_out_ss_0 << stage_pts_in[0] << "->" << image_pts_out[0];
   image_out_ss_0 << "s" << stage_pts_in[0];
   cv::Point2f image_out_0(image_pts_out[0].x + 20,image_pts_out[0].y - 20);
   cv::putText(calibrated,
@@ -196,7 +195,6 @@ int main(int argc, char * argv[])
               2);
 
   std::stringstream image_out_ss_1;
-  // image_out_ss_1 << stage_pts_in[1] << "->" << image_pts_out[1];
   image_out_ss_1 << "s" << stage_pts_in[1];
   cv::Point2f image_out_1(image_pts_out[1].x + 20,image_pts_out[1].y + 30);
   cv::putText(calibrated,
@@ -208,7 +206,6 @@ int main(int argc, char * argv[])
               2);
 
   std::stringstream image_out_ss_3;
-  // image_out_ss_3 << stage_pts_in[3] << "->" << image_pts_out[3];
   image_out_ss_3 << "s" << stage_pts_in[3];
   cv::Point2f image_out_3(image_pts_out[3].x,image_pts_out[3].y - 20);
   cv::putText(calibrated,
@@ -219,9 +216,9 @@ int main(int argc, char * argv[])
               cv::Scalar(0,0,255),
               2);
 
-  cv::imwrite("calibrated.png",calibrated);
+  cv::imwrite("images/calibrated.png",calibrated);
 
-  cv::Mat checkerboard = cv::imread("checkerboard.png",CV_LOAD_IMAGE_GRAYSCALE);
+  cv::Mat checkerboard = cv::imread("images/checkerboard.png",CV_LOAD_IMAGE_GRAYSCALE);
   if(!checkerboard.data)
   {
     std::cout <<  "Could not open or find the checkerboard image!" << std::endl;
@@ -255,7 +252,7 @@ int main(int argc, char * argv[])
   cv::Mat checkerboard_annotated;
   cv::cvtColor(checkerboard,checkerboard_annotated,CV_GRAY2BGR);
   cv::drawChessboardCorners(checkerboard_annotated,patternsize,cv::Mat(corners),patternfound);
-  cv::imwrite("checkerboard_annotated.png",checkerboard_annotated);
+  cv::imwrite("images/checkerboard_annotated.png",checkerboard_annotated);
 
   // std::vector<cv::Point2f> image_pts2;
   // std::vector<cv::Point2f> stage_pts2;
