@@ -54,8 +54,12 @@ int main(int argc, char * argv[])
   stage_pts.push_back(cv::Point2f(24000,85000));
 
   cv::FileStorage fs("calibration/calibration.yml", cv::FileStorage::WRITE);
-  fs << "image_pts" << image_pts;
-  fs << "stage_pts" << stage_pts;
+  std::vector<cv::Point2i> image_pts_i;
+  cv::Mat(image_pts).copyTo(image_pts_i);
+  std::vector<cv::Point2i> stage_pts_i;
+  cv::Mat(stage_pts).copyTo(stage_pts_i);
+  fs << "image_pts" << image_pts_i;
+  fs << "stage_pts" << stage_pts_i;
 
   cv::Mat homography_image_to_stage = cv::findHomography(image_pts,stage_pts,CV_LMEDS);
   fs << "homography_image_to_stage" << homography_image_to_stage;
@@ -72,8 +76,12 @@ int main(int argc, char * argv[])
   image_pts_in.push_back(cv::Point2f(1250,950));
 
   cv::perspectiveTransform(image_pts_in,stage_pts_out,homography_image_to_stage);
-  fs << "image_pts_in" << image_pts_in;
-  fs << "stage_pts_out" << stage_pts_out;
+  std::vector<cv::Point2i> image_pts_in_i;
+  cv::Mat(image_pts_in).copyTo(image_pts_in_i);
+  std::vector<cv::Point2i> stage_pts_out_i;
+  cv::Mat(stage_pts_out).copyTo(stage_pts_out_i);
+  // fs << "image_pts_in" << image_pts_in;
+  // fs << "stage_pts_out" << stage_pts_out;
 
   cv::Mat background = cv::imread("images/background.png",CV_LOAD_IMAGE_GRAYSCALE);
   if(!background.data)
@@ -106,8 +114,8 @@ int main(int argc, char * argv[])
            4);
 
   std::stringstream image_in_ss_0;
-  image_in_ss_0 << "i" << image_pts_in[0] << " -> " << "s" << stage_pts_out[0];
-  cv::Point2f image_in_0(image_pts_in[0].x,image_pts_in[0].y - 20);
+  image_in_ss_0 << "i" << image_pts_in_i[0] << " -> " << "s" << stage_pts_out_i[0];
+  cv::Point2f image_in_0(image_pts_in_i[0].x,image_pts_in_i[0].y - 20);
   cv::putText(calibrated,
               image_in_ss_0.str(),
               image_in_0,
@@ -117,8 +125,8 @@ int main(int argc, char * argv[])
               2);
 
   std::stringstream image_in_ss_1;
-  image_in_ss_1 << "i" << image_pts_in[1] << " -> " << "s" << stage_pts_out[1];
-  cv::Point2f image_in_1(image_pts_in[1].x,image_pts_in[1].y - 20);
+  image_in_ss_1 << "i" << image_pts_in_i[1] << " -> " << "s" << stage_pts_out_i[1];
+  cv::Point2f image_in_1(image_pts_in_i[1].x,image_pts_in_i[1].y - 20);
   cv::putText(calibrated,
               image_in_ss_1.str(),
               image_in_1,
@@ -128,8 +136,8 @@ int main(int argc, char * argv[])
               2);
 
   std::stringstream image_in_ss_2;
-  image_in_ss_2 << "i" << image_pts_in[2] << " -> " << "s" << stage_pts_out[2];
-  cv::Point2f image_in_2(image_pts_in[2].x,image_pts_in[2].y + 30);
+  image_in_ss_2 << "i" << image_pts_in_i[2] << " -> " << "s" << stage_pts_out_i[2];
+  cv::Point2f image_in_2(image_pts_in_i[2].x,image_pts_in_i[2].y + 30);
   cv::putText(calibrated,
               image_in_ss_2.str(),
               image_in_2,
@@ -139,8 +147,8 @@ int main(int argc, char * argv[])
               2);
 
   std::stringstream image_in_ss_3;
-  image_in_ss_3 << "i" << image_pts_in[3] << " -> " << "s" << stage_pts_out[3];
-  cv::Point2f image_in_3(image_pts_in[3].x,image_pts_in[3].y + 30);
+  image_in_ss_3 << "i" << image_pts_in_i[3] << " -> " << "s" << stage_pts_out_i[3];
+  cv::Point2f image_in_3(image_pts_in_i[3].x,image_pts_in_i[3].y + 30);
   cv::putText(calibrated,
               image_in_ss_3.str(),
               image_in_3,
@@ -158,8 +166,12 @@ int main(int argc, char * argv[])
   stage_pts_in.push_back(cv::Point2f(100000,100000));
 
   cv::perspectiveTransform(stage_pts_in,image_pts_out,homography_stage_to_image);
-  fs << "stage_pts_in" << stage_pts_in;
-  fs << "image_pts_out" << image_pts_out;
+  std::vector<cv::Point2i> stage_pts_in_i;
+  cv::Mat(stage_pts_in).copyTo(stage_pts_in_i);
+  std::vector<cv::Point2i> image_pts_out_i;
+  cv::Mat(image_pts_out).copyTo(image_pts_out_i);
+  // fs << "stage_pts_in" << stage_pts_in;
+  // fs << "image_pts_out" << image_pts_out;
 
   fs.release();
 
@@ -184,7 +196,7 @@ int main(int argc, char * argv[])
            cv::Scalar(255,255,0),
            4);
   std::stringstream image_out_ss_0;
-  image_out_ss_0 << "s" << stage_pts_in[0];
+  image_out_ss_0 << "s" << stage_pts_in_i[0];
   cv::Point2f image_out_0(image_pts_out[0].x + 20,image_pts_out[0].y - 20);
   cv::putText(calibrated,
               image_out_ss_0.str(),
@@ -195,7 +207,7 @@ int main(int argc, char * argv[])
               2);
 
   std::stringstream image_out_ss_1;
-  image_out_ss_1 << "s" << stage_pts_in[1];
+  image_out_ss_1 << "s" << stage_pts_in_i[1];
   cv::Point2f image_out_1(image_pts_out[1].x + 20,image_pts_out[1].y + 30);
   cv::putText(calibrated,
               image_out_ss_1.str(),
@@ -206,7 +218,7 @@ int main(int argc, char * argv[])
               2);
 
   std::stringstream image_out_ss_3;
-  image_out_ss_3 << "s" << stage_pts_in[3];
+  image_out_ss_3 << "s" << stage_pts_in_i[3];
   cv::Point2f image_out_3(image_pts_out[3].x,image_pts_out[3].y - 20);
   cv::putText(calibrated,
               image_out_ss_3.str(),
