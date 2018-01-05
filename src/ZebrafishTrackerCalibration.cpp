@@ -20,6 +20,54 @@
 int main(int argc, char * argv[])
 {
   //////
+  cv::Mat checkerboard = cv::imread("images/checkerboard.png",CV_LOAD_IMAGE_GRAYSCALE);
+  if(!checkerboard.data)
+  {
+    std::cout <<  "Could not open or find the checkerboard image!" << std::endl;
+    return -1;
+  }
+
+  cv::Size patternsize(6,8);
+  std::vector<cv::Point2f> corners;
+
+  bool patternfound = cv::findChessboardCorners(checkerboard,
+                                                patternsize,
+                                                corners,
+                                                cv::CALIB_CB_ADAPTIVE_THRESH + cv::CALIB_CB_NORMALIZE_IMAGE + cv::CALIB_CB_FAST_CHECK);
+
+  if(!patternfound)
+  {
+    std::cout <<  "Could not find the checkerboard corners!" << std::endl;
+    return -1;
+  }
+  if(patternfound)
+  {
+    cv::cornerSubPix(checkerboard,
+                     corners,
+                     cv::Size(11, 11),
+                     cv::Size(-1, -1),
+                     cv::TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
+  }
+
+  cv::Mat checkerboard_image_points;
+  cv::cvtColor(checkerboard,checkerboard_image_points,CV_GRAY2BGR);
+  cv::drawChessboardCorners(checkerboard_image_points,patternsize,cv::Mat(corners),patternfound);
+  for (std::vector<cv::Point2f>::iterator it = corners.begin(); it != corners.end(); ++it)
+  {
+    cv::Point2i corner = *it;
+    std::stringstream corner_ss;
+    corner_ss << "i" << corner;
+    cv::Point2i text_location(corner.x,corner.y - 10);
+    cv::putText(checkerboard_image_points,
+                corner_ss.str(),
+                text_location,
+                cv::FONT_HERSHEY_SIMPLEX,
+                0.4,
+                cv::Scalar(0,255,255),
+                1);
+  }
+  cv::imwrite("images/checkerboard_image_points.png",checkerboard_image_points);
+
   std::vector<cv::Point2f> image_pts;
   std::vector<cv::Point2f> stage_pts;
 
@@ -229,42 +277,6 @@ int main(int argc, char * argv[])
               2);
 
   cv::imwrite("images/calibrated.png",calibrated);
-
-  cv::Mat checkerboard = cv::imread("images/checkerboard.png",CV_LOAD_IMAGE_GRAYSCALE);
-  if(!checkerboard.data)
-  {
-    std::cout <<  "Could not open or find the checkerboard image!" << std::endl;
-    return -1;
-  }
-
-  cv::Size patternsize(6,6);
-  std::vector<cv::Point2f> corners;
-
-  //CALIB_CB_FAST_CHECK saves a lot of time on images
-  //that do not contain any chessboard corners
-  bool patternfound = cv::findChessboardCorners(checkerboard,
-                                                patternsize,
-                                                corners,
-                                                cv::CALIB_CB_ADAPTIVE_THRESH + cv::CALIB_CB_NORMALIZE_IMAGE + cv::CALIB_CB_FAST_CHECK);
-
-  if(!patternfound)
-  {
-    std::cout <<  "Could not find the checkerboard corners!" << std::endl;
-    return -1;
-  }
-  // if(patternfound)
-  // {
-  //   cv::cornerSubPix(gray,
-  //                    corners,
-  //                    Size(11, 11),
-  //                    Size(-1, -1),
-  //                    TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
-  // }
-
-  cv::Mat checkerboard_annotated;
-  cv::cvtColor(checkerboard,checkerboard_annotated,CV_GRAY2BGR);
-  cv::drawChessboardCorners(checkerboard_annotated,patternsize,cv::Mat(corners),patternfound);
-  cv::imwrite("images/checkerboard_annotated.png",checkerboard_annotated);
 
   // std::vector<cv::Point2f> image_pts2;
   // std::vector<cv::Point2f> stage_pts2;
