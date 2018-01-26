@@ -51,22 +51,25 @@ int main(int argc, char * argv[])
                      cv::TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
   }
 
-  std::vector<cv::Point2f> image_pts;
+  std::vector<cv::Point2f> image_points;
   for (size_t row=0; row<pattern_count_row; ++row)
   {
     for (size_t col=0; col<pattern_count_col; ++col)
     {
       if (((col % (pattern_count_col - 1)) == 0) && ((row % 2) == 0))
       {
-        image_pts.push_back(corners[row*pattern_count_col + col]);
+        image_points.push_back(corners[row*pattern_count_col + col]);
       }
     }
   }
 
+  float font_scale = 0.7;
+  int font_thickness = 2;
+
   cv::Mat checkerboard_image_points;
   cv::cvtColor(checkerboard,checkerboard_image_points,CV_GRAY2BGR);
   cv::drawChessboardCorners(checkerboard_image_points,patternsize,cv::Mat(corners),patternfound);
-  for (std::vector<cv::Point2f>::iterator it = image_pts.begin(); it != image_pts.end(); ++it)
+  for (std::vector<cv::Point2f>::iterator it = image_points.begin(); it != image_points.end(); ++it)
   {
     cv::Point2i image_pt = *it;
     std::stringstream image_pt_ss;
@@ -76,193 +79,234 @@ int main(int argc, char * argv[])
                 image_pt_ss.str(),
                 text_location,
                 cv::FONT_HERSHEY_SIMPLEX,
-                0.4,
-                cv::Scalar(0,255,255),
-                1);
+                font_scale,
+                cv::Scalar(0,0,255),
+                font_thickness);
   }
   cv::imwrite("images/checkerboard_image_points.png",checkerboard_image_points);
 
-  std::vector<cv::Point2f> stage_pts;
-
   // found experimentally on rig
-  stage_pts.push_back(cv::Point2f(80100,34700)); stage_pts.push_back(cv::Point2f(80500,69800));
+  std::vector<cv::Point2f> stage_points;
 
-  stage_pts.push_back(cv::Point2f(66000,34900)); stage_pts.push_back(cv::Point2f(66500,70000));
+  stage_points.push_back(cv::Point2f(80100,34700)); stage_points.push_back(cv::Point2f(80500,69800));
 
-  stage_pts.push_back(cv::Point2f(51900,35000)); stage_pts.push_back(cv::Point2f(52300,70200));
+  stage_points.push_back(cv::Point2f(66000,34900)); stage_points.push_back(cv::Point2f(66500,70000));
 
-  stage_pts.push_back(cv::Point2f(37800,35200)); stage_pts.push_back(cv::Point2f(38200,70300));
+  stage_points.push_back(cv::Point2f(51900,35000)); stage_points.push_back(cv::Point2f(52300,70200));
+
+  stage_points.push_back(cv::Point2f(37800,35200)); stage_points.push_back(cv::Point2f(38200,70300));
+
+  cv::Mat checkerboard_stage_points;
+  cv::cvtColor(checkerboard,checkerboard_stage_points,CV_GRAY2BGR);
+  cv::drawChessboardCorners(checkerboard_stage_points,patternsize,cv::Mat(corners),patternfound);
+  for (size_t i=0; i<stage_points.size(); ++i)
+  {
+    cv::Point2i stage_pt = stage_points[i];
+    cv::Point2i image_pt = image_points[i];
+    std::stringstream stage_pt_ss;
+    stage_pt_ss << "s" << stage_pt;
+    cv::Point2i text_location(image_pt.x,image_pt.y - 10);
+    cv::putText(checkerboard_stage_points,
+                stage_pt_ss.str(),
+                text_location,
+                cv::FONT_HERSHEY_SIMPLEX,
+                font_scale,
+                cv::Scalar(0,0,255),
+                font_thickness);
+  }
+  cv::imwrite("images/checkerboard_stage_points.png",checkerboard_stage_points);
 
   cv::FileStorage fs("calibration/calibration.yml", cv::FileStorage::WRITE);
-  std::vector<cv::Point2i> image_pts_i;
-  cv::Mat(image_pts).copyTo(image_pts_i);
-  std::vector<cv::Point2i> stage_pts_i;
-  cv::Mat(stage_pts).copyTo(stage_pts_i);
-  fs << "image_pts" << image_pts_i;
-  fs << "stage_pts" << stage_pts_i;
+  std::vector<cv::Point2i> image_points_i;
+  cv::Mat(image_points).copyTo(image_points_i);
+  std::vector<cv::Point2i> stage_points_i;
+  cv::Mat(stage_points).copyTo(stage_points_i);
+  cv::Mat homography_image_to_stage = cv::findHomography(image_points,stage_points,CV_RANSAC);
+  cv::Mat homography_stage_to_image = cv::findHomography(stage_points,image_points,CV_RANSAC);
+  std::vector<cv::Point2f> image_points_calculated;
+  cv::perspectiveTransform(stage_points,image_points_calculated,homography_stage_to_image);
+  std::vector<cv::Point2i> image_points_calculated_i;
+  cv::Mat(image_points_calculated).copyTo(image_points_calculated_i);
+  std::vector<cv::Point2f> stage_points_calculated;
+  cv::perspectiveTransform(image_points,stage_points_calculated,homography_image_to_stage);
+  std::vector<cv::Point2i> stage_points_calculated_i;
+  cv::Mat(stage_points_calculated).copyTo(stage_points_calculated_i);
 
-  cv::Mat homography_image_to_stage = cv::findHomography(image_pts,stage_pts,CV_LMEDS);
+
+  fs << "image_points" << image_points_i;
+  fs << "image_points_calculated" << image_points_calculated_i;
+  fs << "stage_points" << stage_points_i;
+  fs << "stage_points_calculated" << stage_points_calculated_i;
   fs << "homography_image_to_stage" << homography_image_to_stage;
-
-  cv::Mat homography_stage_to_image = cv::findHomography(stage_pts,image_pts,CV_LMEDS);
   fs << "homography_stage_to_image" << homography_stage_to_image;
 
   fs.release();
 
-  cv::Mat background = cv::imread("images/background.png",CV_LOAD_IMAGE_GRAYSCALE);
-  if(!background.data)
-  {
-    std::cout <<  "Could not open or find the background image!" << std::endl;
-    return -1;
-  }
   cv::Mat calibrated;
-  cv::cvtColor(background,calibrated,CV_GRAY2BGR);
+  cv::cvtColor(checkerboard,calibrated,CV_GRAY2BGR);
 
-  std::vector<cv::Point2f> stage_pts_in;
-  std::vector<cv::Point2f> image_pts_out;
+  std::vector<cv::Point2f> stage_points_in;
+  std::vector<cv::Point2f> image_points_out;
 
-  stage_pts_in.push_back(cv::Point2f(0,0));
-  stage_pts_in.push_back(cv::Point2f(100000,0));
-  stage_pts_in.push_back(cv::Point2f(0,100000));
-  stage_pts_in.push_back(cv::Point2f(100000,100000));
+  cv::Point2f stage_offset(20000,20000);
+  cv::Point2f stage_limit(100000,100000);
 
-  cv::perspectiveTransform(stage_pts_in,image_pts_out,homography_stage_to_image);
-  std::vector<cv::Point2i> stage_pts_in_i;
-  cv::Mat(stage_pts_in).copyTo(stage_pts_in_i);
-  std::vector<cv::Point2i> image_pts_out_i;
-  cv::Mat(image_pts_out).copyTo(image_pts_out_i);
+  stage_points_in.push_back(stage_offset);
+  stage_points_in.push_back(cv::Point2f((stage_limit.x - stage_offset.x),stage_offset.y));
+  stage_points_in.push_back(cv::Point2f(stage_offset.x,(stage_limit.y - stage_offset.y)));
+  stage_points_in.push_back(cv::Point2f((stage_limit.x - stage_offset.x),(stage_limit.y - stage_offset.y)));
+
+  cv::perspectiveTransform(stage_points_in,image_points_out,homography_stage_to_image);
+  std::vector<cv::Point2i> stage_points_in_i;
+  cv::Mat(stage_points_in).copyTo(stage_points_in_i);
+  std::vector<cv::Point2i> image_points_out_i;
+  cv::Mat(image_points_out).copyTo(image_points_out_i);
 
   cv::line(calibrated,
-           image_pts_out[0],
-           image_pts_out[1],
+           image_points_out[0],
+           image_points_out[1],
            cv::Scalar(255,0,0),
            4);
   cv::line(calibrated,
-           image_pts_out[0],
-           image_pts_out[2],
+           image_points_out[0],
+           image_points_out[2],
            cv::Scalar(0,255,0),
            4);
   cv::line(calibrated,
-           image_pts_out[1],
-           image_pts_out[3],
+           image_points_out[1],
+           image_points_out[3],
            cv::Scalar(255,255,0),
            4);
   cv::line(calibrated,
-           image_pts_out[2],
-           image_pts_out[3],
+           image_points_out[2],
+           image_points_out[3],
            cv::Scalar(255,255,0),
            4);
+
   std::stringstream image_out_ss_0;
-  image_out_ss_0 << "s" << stage_pts_in_i[0];
-  cv::Point2f image_out_0(image_pts_out[0].x + 20,image_pts_out[0].y - 20);
+  image_out_ss_0 << "s" << stage_points_in_i[0];
+  cv::Point2f image_out_0(image_points_out[0].x + 20,image_points_out[0].y - 20);
   cv::putText(calibrated,
               image_out_ss_0.str(),
               image_out_0,
               cv::FONT_HERSHEY_SIMPLEX,
-              0.75,
+              font_scale,
               cv::Scalar(0,0,255),
-              2);
+              font_thickness);
 
   std::stringstream image_out_ss_1;
-  image_out_ss_1 << "s" << stage_pts_in_i[1];
-  cv::Point2f image_out_1(image_pts_out[1].x + 20,image_pts_out[1].y + 30);
+  image_out_ss_1 << "s" << stage_points_in_i[1];
+  cv::Point2f image_out_1(image_points_out[1].x + 20,image_points_out[1].y + 30);
   cv::putText(calibrated,
               image_out_ss_1.str(),
               image_out_1,
               cv::FONT_HERSHEY_SIMPLEX,
-              0.75,
+              font_scale,
               cv::Scalar(0,0,255),
-              2);
+              font_thickness);
+
+  std::stringstream image_out_ss_2;
+  image_out_ss_2 << "s" << stage_points_in_i[2];
+  cv::Point2f image_out_2(image_points_out[2].x,image_points_out[2].y + 20);
+  cv::putText(calibrated,
+              image_out_ss_2.str(),
+              image_out_2,
+              cv::FONT_HERSHEY_SIMPLEX,
+              font_scale,
+              cv::Scalar(0,0,255),
+              font_thickness);
 
   std::stringstream image_out_ss_3;
-  image_out_ss_3 << "s" << stage_pts_in_i[3];
-  cv::Point2f image_out_3(image_pts_out[3].x,image_pts_out[3].y - 20);
+  image_out_ss_3 << "s" << stage_points_in_i[3];
+  cv::Point2f image_out_3(image_points_out[3].x,image_points_out[3].y + 20);
   cv::putText(calibrated,
               image_out_ss_3.str(),
               image_out_3,
               cv::FONT_HERSHEY_SIMPLEX,
-              0.75,
+              font_scale,
               cv::Scalar(0,0,255),
-              2);
+              font_thickness);
 
-  std::vector<cv::Point2f> image_pts_in;
-  std::vector<cv::Point2f> stage_pts_out;
+  // std::vector<cv::Point2f> image_points_in;
+  // std::vector<cv::Point2f> stage_points_out;
 
-  image_pts_in.push_back(cv::Point2f(700,250));
-  image_pts_in.push_back(cv::Point2f(1250,250));
-  image_pts_in.push_back(cv::Point2f(700,950));
-  image_pts_in.push_back(cv::Point2f(1250,950));
+  // cv::Point2f image_offset(175,250);
 
-  cv::perspectiveTransform(image_pts_in,stage_pts_out,homography_image_to_stage);
-  std::vector<cv::Point2i> image_pts_in_i;
-  cv::Mat(image_pts_in).copyTo(image_pts_in_i);
-  std::vector<cv::Point2i> stage_pts_out_i;
-  cv::Mat(stage_pts_out).copyTo(stage_pts_out_i);
+  // image_points_in.push_back(image_offset);
+  // image_points_in.push_back(cv::Point2f((background.size().width - image_offset.x),image_offset.y));
+  // image_points_in.push_back(cv::Point2f(image_offset.x,(background.size().height - image_offset.y)));
+  // image_points_in.push_back(cv::Point2f((background.size().width - image_offset.x),(background.size().height - image_offset.y)));
 
-  cv::line(calibrated,
-           image_pts_in[0],
-           image_pts_in[1],
-           cv::Scalar(255,0,0),
-           4);
-  cv::line(calibrated,
-           image_pts_in[0],
-           image_pts_in[2],
-           cv::Scalar(0,255,0),
-           4);
-  cv::line(calibrated,
-           image_pts_in[1],
-           image_pts_in[3],
-           cv::Scalar(255,255,0),
-           4);
-  cv::line(calibrated,
-           image_pts_in[2],
-           image_pts_in[3],
-           cv::Scalar(255,255,0),
-           4);
+  // cv::perspectiveTransform(image_points_in,stage_points_out,homography_image_to_stage);
+  // std::vector<cv::Point2i> image_points_in_i;
+  // cv::Mat(image_points_in).copyTo(image_points_in_i);
+  // std::vector<cv::Point2i> stage_points_out_i;
+  // cv::Mat(stage_points_out).copyTo(stage_points_out_i);
 
-  std::stringstream image_in_ss_0;
-  image_in_ss_0 << "i" << image_pts_in_i[0] << " -> " << "s" << stage_pts_out_i[0];
-  cv::Point2f image_in_0(image_pts_in_i[0].x,image_pts_in_i[0].y - 20);
-  cv::putText(calibrated,
-              image_in_ss_0.str(),
-              image_in_0,
-              cv::FONT_HERSHEY_SIMPLEX,
-              0.75,
-              cv::Scalar(0,0,255),
-              2);
+  // cv::line(calibrated,
+  //          image_points_in[0],
+  //          image_points_in[1],
+  //          cv::Scalar(255,0,0),
+  //          4);
+  // cv::line(calibrated,
+  //          image_points_in[0],
+  //          image_points_in[2],
+  //          cv::Scalar(0,255,0),
+  //          4);
+  // cv::line(calibrated,
+  //          image_points_in[1],
+  //          image_points_in[3],
+  //          cv::Scalar(255,255,0),
+  //          4);
+  // cv::line(calibrated,
+  //          image_points_in[2],
+  //          image_points_in[3],
+  //          cv::Scalar(255,255,0),
+  //          4);
 
-  std::stringstream image_in_ss_1;
-  image_in_ss_1 << "i" << image_pts_in_i[1] << " -> " << "s" << stage_pts_out_i[1];
-  cv::Point2f image_in_1(image_pts_in_i[1].x,image_pts_in_i[1].y - 20);
-  cv::putText(calibrated,
-              image_in_ss_1.str(),
-              image_in_1,
-              cv::FONT_HERSHEY_SIMPLEX,
-              0.75,
-              cv::Scalar(0,0,255),
-              2);
+  // std::stringstream image_in_ss_0;
+  // image_in_ss_0 << "i" << image_points_in_i[0] << " -> " << "s" << stage_points_out_i[0];
+  // cv::Point2f image_in_0(image_points_in_i[0].x,image_points_in_i[0].y - 20);
+  // cv::putText(calibrated,
+  //             image_in_ss_0.str(),
+  //             image_in_0,
+  //             cv::FONT_HERSHEY_SIMPLEX,
+  //             font_scale,
+  //             cv::Scalar(0,0,255),
+  //             font_thickness);
 
-  std::stringstream image_in_ss_2;
-  image_in_ss_2 << "i" << image_pts_in_i[2] << " -> " << "s" << stage_pts_out_i[2];
-  cv::Point2f image_in_2(image_pts_in_i[2].x,image_pts_in_i[2].y + 30);
-  cv::putText(calibrated,
-              image_in_ss_2.str(),
-              image_in_2,
-              cv::FONT_HERSHEY_SIMPLEX,
-              0.75,
-              cv::Scalar(0,0,255),
-              2);
+  // std::stringstream image_in_ss_1;
+  // image_in_ss_1 << "i" << image_points_in_i[1] << " -> " << "s" << stage_points_out_i[1];
+  // cv::Point2f image_in_1(image_points_in_i[1].x - 120,image_points_in_i[1].y - 20);
+  // cv::putText(calibrated,
+  //             image_in_ss_1.str(),
+  //             image_in_1,
+  //             cv::FONT_HERSHEY_SIMPLEX,
+  //             font_scale,
+  //             cv::Scalar(0,0,255),
+  //             font_thickness);
 
-  std::stringstream image_in_ss_3;
-  image_in_ss_3 << "i" << image_pts_in_i[3] << " -> " << "s" << stage_pts_out_i[3];
-  cv::Point2f image_in_3(image_pts_in_i[3].x,image_pts_in_i[3].y + 30);
-  cv::putText(calibrated,
-              image_in_ss_3.str(),
-              image_in_3,
-              cv::FONT_HERSHEY_SIMPLEX,
-              0.75,
-              cv::Scalar(0,0,255),
-              2);
+  // std::stringstream image_in_ss_2;
+  // image_in_ss_2 << "i" << image_points_in_i[2] << " -> " << "s" << stage_points_out_i[2];
+  // cv::Point2f image_in_2(image_points_in_i[2].x,image_points_in_i[2].y + 30);
+  // cv::putText(calibrated,
+  //             image_in_ss_2.str(),
+  //             image_in_2,
+  //             cv::FONT_HERSHEY_SIMPLEX,
+  //             font_scale,
+  //             cv::Scalar(0,0,255),
+  //             font_thickness);
+
+  // std::stringstream image_in_ss_3;
+  // image_in_ss_3 << "i" << image_points_in_i[3] << " -> " << "s" << stage_points_out_i[3];
+  // cv::Point2f image_in_3(image_points_in_i[3].x - 120,image_points_in_i[3].y + 30);
+  // cv::putText(calibrated,
+  //             image_in_ss_3.str(),
+  //             image_in_3,
+  //             cv::FONT_HERSHEY_SIMPLEX,
+  //             font_scale,
+  //             cv::Scalar(0,0,255),
+  //             font_thickness);
 
   cv::imwrite("images/calibrated.png",calibrated);
 
