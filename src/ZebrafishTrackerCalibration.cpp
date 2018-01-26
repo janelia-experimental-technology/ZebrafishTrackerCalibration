@@ -88,13 +88,13 @@ int main(int argc, char * argv[])
   // found experimentally on rig
   std::vector<cv::Point2f> stage_points;
 
-  stage_points.push_back(cv::Point2f(80100,34700)); stage_points.push_back(cv::Point2f(80500,69800));
+  stage_points.push_back(cv::Point2f(81200,36000)); stage_points.push_back(cv::Point2f(81500,71200));
 
-  stage_points.push_back(cv::Point2f(66000,34900)); stage_points.push_back(cv::Point2f(66500,70000));
+  stage_points.push_back(cv::Point2f(67200,36000)); stage_points.push_back(cv::Point2f(67300,71200));
 
-  stage_points.push_back(cv::Point2f(51900,35000)); stage_points.push_back(cv::Point2f(52300,70200));
+  stage_points.push_back(cv::Point2f(53000,36000)); stage_points.push_back(cv::Point2f(53200,71200));
 
-  stage_points.push_back(cv::Point2f(37800,35200)); stage_points.push_back(cv::Point2f(38200,70300));
+  stage_points.push_back(cv::Point2f(38900,36100)); stage_points.push_back(cv::Point2f(39100,71300));
 
   cv::Mat checkerboard_stage_points;
   cv::cvtColor(checkerboard,checkerboard_stage_points,CV_GRAY2BGR);
