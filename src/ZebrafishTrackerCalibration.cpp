@@ -20,10 +20,10 @@
 int main(int argc, char * argv[])
 {
   //////
-  cv::Mat checkerboard = cv::imread("images/checkerboard.png",CV_LOAD_IMAGE_GRAYSCALE);
-  if(!checkerboard.data)
+  cv::Mat chessboard = cv::imread("images/chessboard.png",CV_LOAD_IMAGE_GRAYSCALE);
+  if(!chessboard.data)
   {
-    std::cout <<  "Could not open or find the checkerboard image!" << std::endl;
+    std::cout <<  "Could not open or find the chessboard image!" << std::endl;
     return -1;
   }
 
@@ -32,19 +32,19 @@ int main(int argc, char * argv[])
   cv::Size patternsize(pattern_count_col,pattern_count_row);
   std::vector<cv::Point2f> corners;
 
-  bool patternfound = cv::findChessboardCorners(checkerboard,
+  bool patternfound = cv::findChessboardCorners(chessboard,
                                                 patternsize,
                                                 corners,
                                                 cv::CALIB_CB_ADAPTIVE_THRESH + cv::CALIB_CB_NORMALIZE_IMAGE + cv::CALIB_CB_FAST_CHECK);
 
   if(!patternfound)
   {
-    std::cout <<  "Could not find the checkerboard corners!" << std::endl;
+    std::cout <<  "Could not find the chessboard corners!" << std::endl;
     return -1;
   }
   if(patternfound)
   {
-    cv::cornerSubPix(checkerboard,
+    cv::cornerSubPix(chessboard,
                      corners,
                      cv::Size(11, 11),
                      cv::Size(-1, -1),
@@ -66,16 +66,16 @@ int main(int argc, char * argv[])
   float font_scale = 0.7;
   int font_thickness = 2;
 
-  cv::Mat checkerboard_image_points;
-  cv::cvtColor(checkerboard,checkerboard_image_points,CV_GRAY2BGR);
-  cv::drawChessboardCorners(checkerboard_image_points,patternsize,cv::Mat(corners),patternfound);
+  cv::Mat chessboard_image_points;
+  cv::cvtColor(chessboard,chessboard_image_points,CV_GRAY2BGR);
+  cv::drawChessboardCorners(chessboard_image_points,patternsize,cv::Mat(corners),patternfound);
   for (std::vector<cv::Point2f>::iterator it = image_points.begin(); it != image_points.end(); ++it)
   {
     cv::Point2i image_pt = *it;
     std::stringstream image_pt_ss;
     image_pt_ss << "i" << image_pt;
     cv::Point2i text_location(image_pt.x,image_pt.y - 10);
-    cv::putText(checkerboard_image_points,
+    cv::putText(chessboard_image_points,
                 image_pt_ss.str(),
                 text_location,
                 cv::FONT_HERSHEY_SIMPLEX,
@@ -83,7 +83,7 @@ int main(int argc, char * argv[])
                 cv::Scalar(0,0,255),
                 font_thickness);
   }
-  cv::imwrite("images/checkerboard_image_points.png",checkerboard_image_points);
+  cv::imwrite("images/chessboard_image_points.png",chessboard_image_points);
 
   // found experimentally on rig
   std::vector<cv::Point2f> stage_points;
@@ -96,9 +96,9 @@ int main(int argc, char * argv[])
 
   stage_points.push_back(cv::Point2f(38900,36100)); stage_points.push_back(cv::Point2f(39100,71300));
 
-  cv::Mat checkerboard_stage_points;
-  cv::cvtColor(checkerboard,checkerboard_stage_points,CV_GRAY2BGR);
-  cv::drawChessboardCorners(checkerboard_stage_points,patternsize,cv::Mat(corners),patternfound);
+  cv::Mat chessboard_stage_points;
+  cv::cvtColor(chessboard,chessboard_stage_points,CV_GRAY2BGR);
+  cv::drawChessboardCorners(chessboard_stage_points,patternsize,cv::Mat(corners),patternfound);
   for (size_t i=0; i<stage_points.size(); ++i)
   {
     cv::Point2i stage_pt = stage_points[i];
@@ -106,7 +106,7 @@ int main(int argc, char * argv[])
     std::stringstream stage_pt_ss;
     stage_pt_ss << "s" << stage_pt;
     cv::Point2i text_location(image_pt.x,image_pt.y - 10);
-    cv::putText(checkerboard_stage_points,
+    cv::putText(chessboard_stage_points,
                 stage_pt_ss.str(),
                 text_location,
                 cv::FONT_HERSHEY_SIMPLEX,
@@ -114,7 +114,7 @@ int main(int argc, char * argv[])
                 cv::Scalar(0,0,255),
                 font_thickness);
   }
-  cv::imwrite("images/checkerboard_stage_points.png",checkerboard_stage_points);
+  cv::imwrite("images/chessboard_stage_points.png",chessboard_stage_points);
 
   cv::FileStorage fs("calibration/calibration.yml", cv::FileStorage::WRITE);
   std::vector<cv::Point2i> image_points_i;
@@ -143,7 +143,7 @@ int main(int argc, char * argv[])
   fs.release();
 
   cv::Mat calibrated;
-  cv::cvtColor(checkerboard,calibrated,CV_GRAY2BGR);
+  cv::cvtColor(chessboard,calibrated,CV_GRAY2BGR);
 
   std::vector<cv::Point2f> stage_points_in;
   std::vector<cv::Point2f> image_points_out;
