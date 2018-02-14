@@ -27,6 +27,7 @@ int main(int argc, char * argv[])
     return -1;
   }
 
+  // image_points
   size_t pattern_count_col = 6;
   size_t pattern_count_row = 8;
   cv::Size patternsize(pattern_count_col,pattern_count_row);
@@ -63,13 +64,41 @@ int main(int argc, char * argv[])
     }
   }
 
+  // stage_points: found experimentally on rig
+  std::vector<cv::Point2f> stage_points;
+
+  stage_points.push_back(cv::Point2f(81200,36000)); stage_points.push_back(cv::Point2f(81500,71200));
+
+  stage_points.push_back(cv::Point2f(67200,36000)); stage_points.push_back(cv::Point2f(67300,71200));
+
+  stage_points.push_back(cv::Point2f(53000,36000)); stage_points.push_back(cv::Point2f(53200,71200));
+
+  stage_points.push_back(cv::Point2f(38900,36100)); stage_points.push_back(cv::Point2f(39100,71300));
+
+  // find homography
+  cv::Mat homography_image_to_stage = cv::findHomography(image_points,stage_points,CV_RANSAC);
+  cv::Mat homography_stage_to_image = cv::findHomography(stage_points,image_points,CV_RANSAC);
+
+  // use more image points
+  std::vector<cv::Point2f> image_points_more;
+  for (size_t row=0; row<pattern_count_row; ++row)
+  {
+    for (size_t col=0; col<pattern_count_col; ++col)
+    {
+      if ((col % (pattern_count_col - 1)) == 0)
+      {
+        image_points_more.push_back(corners[row*pattern_count_col + col]);
+      }
+    }
+  }
+
   float font_scale = 0.7;
   int font_thickness = 2;
 
   cv::Mat checkerboard_image_points;
   cv::cvtColor(checkerboard,checkerboard_image_points,CV_GRAY2BGR);
   cv::drawChessboardCorners(checkerboard_image_points,patternsize,cv::Mat(corners),patternfound);
-  for (std::vector<cv::Point2f>::iterator it = image_points.begin(); it != image_points.end(); ++it)
+  for (std::vector<cv::Point2f>::iterator it = image_points_more.begin(); it != image_points_more.end(); ++it)
   {
     cv::Point2i image_pt = *it;
     std::stringstream image_pt_ss;
@@ -85,24 +114,27 @@ int main(int argc, char * argv[])
   }
   cv::imwrite("images/checkerboard_image_points.png",checkerboard_image_points);
 
-  // found experimentally on rig
-  std::vector<cv::Point2f> stage_points;
-
-  stage_points.push_back(cv::Point2f(81200,36000)); stage_points.push_back(cv::Point2f(81500,71200));
-
-  stage_points.push_back(cv::Point2f(67200,36000)); stage_points.push_back(cv::Point2f(67300,71200));
-
-  stage_points.push_back(cv::Point2f(53000,36000)); stage_points.push_back(cv::Point2f(53200,71200));
-
-  stage_points.push_back(cv::Point2f(38900,36100)); stage_points.push_back(cv::Point2f(39100,71300));
+  cv::FileStorage fs("calibration/calibration.yml", cv::FileStorage::WRITE);
+  std::vector<cv::Point2i> image_points_i;
+  cv::Mat(image_points_more).copyTo(image_points_i);
+  std::vector<cv::Point2i> stage_points_i;
+  cv::Mat(stage_points).copyTo(stage_points_i);
+  std::vector<cv::Point2f> image_points_calculated;
+  cv::perspectiveTransform(stage_points,image_points_calculated,homography_stage_to_image);
+  std::vector<cv::Point2i> image_points_calculated_i;
+  cv::Mat(image_points_calculated).copyTo(image_points_calculated_i);
+  std::vector<cv::Point2f> stage_points_calculated;
+  cv::perspectiveTransform(image_points_more,stage_points_calculated,homography_image_to_stage);
+  std::vector<cv::Point2i> stage_points_calculated_i;
+  cv::Mat(stage_points_calculated).copyTo(stage_points_calculated_i);
 
   cv::Mat checkerboard_stage_points;
   cv::cvtColor(checkerboard,checkerboard_stage_points,CV_GRAY2BGR);
   cv::drawChessboardCorners(checkerboard_stage_points,patternsize,cv::Mat(corners),patternfound);
-  for (size_t i=0; i<stage_points.size(); ++i)
+  for (size_t i=0; i<stage_points_calculated_i.size(); ++i)
   {
-    cv::Point2i stage_pt = stage_points[i];
-    cv::Point2i image_pt = image_points[i];
+    cv::Point2i stage_pt = stage_points_calculated_i[i];
+    cv::Point2i image_pt = image_points_more[i];
     std::stringstream stage_pt_ss;
     stage_pt_ss << "s" << stage_pt;
     cv::Point2i text_location(image_pt.x,image_pt.y - 10);
@@ -115,23 +147,6 @@ int main(int argc, char * argv[])
                 font_thickness);
   }
   cv::imwrite("images/checkerboard_stage_points.png",checkerboard_stage_points);
-
-  cv::FileStorage fs("calibration/calibration.yml", cv::FileStorage::WRITE);
-  std::vector<cv::Point2i> image_points_i;
-  cv::Mat(image_points).copyTo(image_points_i);
-  std::vector<cv::Point2i> stage_points_i;
-  cv::Mat(stage_points).copyTo(stage_points_i);
-  cv::Mat homography_image_to_stage = cv::findHomography(image_points,stage_points,CV_RANSAC);
-  cv::Mat homography_stage_to_image = cv::findHomography(stage_points,image_points,CV_RANSAC);
-  std::vector<cv::Point2f> image_points_calculated;
-  cv::perspectiveTransform(stage_points,image_points_calculated,homography_stage_to_image);
-  std::vector<cv::Point2i> image_points_calculated_i;
-  cv::Mat(image_points_calculated).copyTo(image_points_calculated_i);
-  std::vector<cv::Point2f> stage_points_calculated;
-  cv::perspectiveTransform(image_points,stage_points_calculated,homography_image_to_stage);
-  std::vector<cv::Point2i> stage_points_calculated_i;
-  cv::Mat(stage_points_calculated).copyTo(stage_points_calculated_i);
-
 
   fs << "image_points" << image_points_i;
   fs << "image_points_calculated" << image_points_calculated_i;
