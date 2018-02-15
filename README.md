@@ -1,4 +1,4 @@
-# ZebrafishTrackerCalibration
+# ZebrafishTrackerConfiguration
 
 Authors:
 
@@ -8,4 +8,4 @@ License:
 
     BSD
 
-Calibration data to be used with [ZebrafishTracker](https://github.com/janelia-experimental-technology/ZebrafishTracker)
+Configuration and calibration data to be used with [ZebrafishTracker](https://github.com/janelia-experimental-technology/ZebrafishTracker)
